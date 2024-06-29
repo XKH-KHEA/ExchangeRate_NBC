@@ -70,8 +70,11 @@ app.get("/data", async (req, res) => {
     const page = await browser.newPage();
 
     const result = await fetchDataForDate(page, dateFilter);
-
-    res.json(result);
+    const response = {
+      ok: true,
+      value: result,
+    };
+    res.json(response);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: error.message });
