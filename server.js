@@ -77,7 +77,7 @@ app.get("/data", async (req, res) => {
     const result = await fetchDataForDate(page, dateFilter);
     const response = {
       ok: true,
-      value: result,
+      value: [result],
     };
     res.json(response);
   } catch (error) {
