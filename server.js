@@ -40,10 +40,15 @@ const fetchDataForDate = async (page, dateFilter) => {
     const officialExchangeRate = officialExchangeRateMatch
       ? parseInt(officialExchangeRateMatch[1])
       : null;
-
+    bid = officialExchangeRate;
     return {
-      officialExchangeRate,
-     // date: dateFilter,
+      currency: "USD",
+      symbol: "USD/KHR",
+      unit: "1",
+      bid,
+      ask: "",
+
+      // date: dateFilter,
     };
   } catch (error) {
     console.error("Error fetching data for date", dateFilter, ":", error);
