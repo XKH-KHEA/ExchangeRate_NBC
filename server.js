@@ -43,7 +43,7 @@ const fetchDataForDate = async (page, dateFilter) => {
 
     return {
       officialExchangeRate,
-      date: dateFilter,
+     // date: dateFilter,
     };
   } catch (error) {
     console.error("Error fetching data for date", dateFilter, ":", error);
