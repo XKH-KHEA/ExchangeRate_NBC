@@ -1,21 +1,39 @@
+
 const express = require("express");
 const puppeteer = require("puppeteer");
 const cheerio = require("cheerio");
 const cors = require("cors");
 require("dotenv").config();
+
 const app = express();
 app.use(cors());
 
-let browser; // Reuse Puppeteer browser instance
-
-const fetchDataForDate = async (page, dateFilter) => {
+app.get("/data", async (req, res) => {
   try {
+    const today = new Date().toISOString().split("T")[0];
+    const dateFilter = req.query.date || today;
+    const symbolFilter = req.query.symbol || null;
+
+    const browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      executablePath:
+        process.env.NODE_ENV === "production"
+          ? process.env.PUPPETEER_EXECUTABLE_PATH
+          : undefined, // Use default executable path
+    });
+
+    const page = await browser.newPage();
+
+    await page.setUserAgent(
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"
+    );
+
     await page.goto(
       "https://www.nbc.gov.kh/english/economic_research/exchange_rate.php"
     );
 
     await page.waitForSelector("#datepicker");
-
     await page.$eval(
       "#datepicker",
       (datepicker, dateFilter) => {
@@ -25,8 +43,8 @@ const fetchDataForDate = async (page, dateFilter) => {
     );
 
     await Promise.all([
+      page.waitForNavigation(), // Wait for page navigation
       page.click('input[name="view"]'), // Click on the "View" button
-      page.waitForNavigation({ waitUntil: "networkidle0" }), // Wait for navigation
     ]);
 
     await page.waitForSelector("table.tbl-responsive");
@@ -34,51 +52,53 @@ const fetchDataForDate = async (page, dateFilter) => {
     const content = await page.content();
     const $ = cheerio.load(content);
 
+    const exchangeRates = [];
+
+    $("table.tbl-responsive tr").each((index, element) => {
+      if (index > 0) {
+        const columns = $(element).find("td");
+        const currency = columns.eq(0).text().trim();
+        const symbol = columns.eq(1).text().trim();
+        const unit = columns.eq(2).text().trim();
+        const bid = columns.eq(3).text().trim();
+        const ask = columns.eq(4).text().trim();
+
+        const exchangeRate = { currency, symbol, unit, bid, ask };
+
+        if (!symbolFilter || symbol === symbolFilter) {
+          exchangeRates.push(exchangeRate);
+        }
+      }
+    });
+
     const officialExchangeRateRow = $('td:contains("Official Exchange Rate")');
     const officialExchangeRateText = officialExchangeRateRow.text();
     const officialExchangeRateMatch = officialExchangeRateText.match(/(\d+)/);
     const officialExchangeRate = officialExchangeRateMatch
       ? parseInt(officialExchangeRateMatch[1])
       : null;
-    bid = officialExchangeRate;
-    return {
-      currency: "USD",
-      symbol: "USD/KHR",
-      unit: "1",
-      bid,
-      ask: "",
 
-      // date: dateFilter,
-    };
-  } catch (error) {
-    console.error("Error fetching data for date", dateFilter, ":", error);
-    return { error: error.message };
-  }
-};
+    await browser.close();
 
-app.get("/data", async (req, res) => {
-  try {
-    const today = new Date().toISOString().split("T")[0];
-    const dateFilter = req.query.date || today;
+    if (officialExchangeRate) {
+      const officialExchangeRateObj = {
+        currency: "USD",
+        symbol: "USD/KHR",
+        unit: "1",
+        bid: officialExchangeRate,
+        ask: "",
+      };
 
-    if (!browser) {
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-        executablePath:
-          process.env.NODE_ENV === "production"
-            ? process.env.PUPPETEER_EXECUTABLE_PATH
-            : undefined, // Use default executable path
-      });
+      if (!symbolFilter || officialExchangeRateObj.symbol === symbolFilter) {
+        exchangeRates.push(officialExchangeRateObj);
+      }
     }
 
-    const page = await browser.newPage();
-
-    const result = await fetchDataForDate(page, dateFilter);
     const response = {
       ok: true,
-      value: [result],
+      value: exchangeRates,
     };
+
     res.json(response);
   } catch (error) {
     console.error("Error:", error);
