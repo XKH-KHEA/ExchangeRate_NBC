@@ -83,8 +83,8 @@ app.get("/data", async (req, res) => {
       const officialExchangeRateObj = {
         currency: "KHR",
         symbol: "KHR/USD",
-        unit: "1",
-        bid: officialExchangeRate,
+        unit: officialExchangeRate,
+        bid: "1",
         ask: "",
       };
 
