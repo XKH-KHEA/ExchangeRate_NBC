@@ -88,7 +88,11 @@ app.get("/data", async (req, res) => {
         ask: "",
       };
 
-      if (!symbolFilter || officialExchangeRateObj.symbol === symbolFilter) {
+      if (
+        !symbolFilter ||
+        officialExchangeRateObj.symbol === symbolFilter ||
+        officialExchangeRateObj.symbol === "KHR/USD"
+      ) {
         exchangeRates.push(officialExchangeRateObj);
       }
     }
