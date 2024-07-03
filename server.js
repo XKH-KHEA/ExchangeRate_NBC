@@ -1,4 +1,3 @@
-
 const express = require("express");
 const puppeteer = require("puppeteer");
 const cheerio = require("cheerio");
@@ -82,8 +81,8 @@ app.get("/data", async (req, res) => {
 
     if (officialExchangeRate) {
       const officialExchangeRateObj = {
-        currency: "USD",
-        symbol: "USD/KHR",
+        currency: "KHR",
+        symbol: "KHR/USD",
         unit: "1",
         bid: officialExchangeRate,
         ask: "",
